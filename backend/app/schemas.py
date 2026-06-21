@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional , List
 from datetime import datetime
 import uuid
 
@@ -39,3 +39,11 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str] = None
+
+
+# ============================
+# 🪙 TICKERS & STOCK SCHEMAS
+# ============================
+
+class TickersUpdate(BaseModel):
+    tickers: List[str] = Field(..., description="قائمة برموز الأسهم الجديدة بالكامل")

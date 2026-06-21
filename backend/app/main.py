@@ -9,6 +9,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# venv\Scripts\Activate.ps1
+
 origins = [
     "http://localhost:3000",
     settings.NEXT_FRONTEND_URL,

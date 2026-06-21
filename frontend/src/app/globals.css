@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply transition-colors duration-500 ease-in-out;
+    /* خلفية الوضع الفاتح: تدرج ناعم يعطي إحساساً بالنظافة */
+    background-color: #f8fafc;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+    color: #0f172a;
+    font-family: var(--font-cairo), sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* إضافة تأثير "Glass" للعناصر لتعزيز الخلفية */
+@layer components {
+  .glass-panel {
+    @apply bg-white/60 dark:bg-[#080b11]/50 backdrop-blur-xl border border-white/20 dark:border-white/5;
+  }
+}
+
+/* تحسينات بصرية إضافية */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dir-rtl {
+  direction: rtl;
+}
+
+/* إزالة التعريفات القديمة المتضاربة لضمان سيطرة Tailwind */
+@theme inline {
+  --font-sans: var(--font-cairo);
+  --font-mono: var(--font-jakarta);
 }
