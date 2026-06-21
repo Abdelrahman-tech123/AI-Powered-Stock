@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import auth_routes , stock_routes
+from app.routes import auth_routes , stock_routes , tickers_routes
 
 app = FastAPI(
     title="AI-Powered Stock",
@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.include_router(auth_routes.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(stock_routes.router , prefix="/api/services/stock" , tags=["Stock Services"])
+app.include_router(tickers_routes.router , prefix="/api/services/tickers" , tags=["Stock Services"])
 
 @app.get("/", tags=["Root"])
 def read_root():

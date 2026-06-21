@@ -66,7 +66,7 @@ export default function DashboardPage() {
                 const token = (session as any)?.accessToken;
                 try {
                     setLoading(true);
-                    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/tickers`, {
+                    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
         try {
             await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/tickers`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`,
                 { tickers: updatedTickers },
                 {
                     headers: {

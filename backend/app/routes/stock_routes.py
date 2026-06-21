@@ -34,32 +34,37 @@ async def get_dashboard_stocks(
     return results
 
 
-@router.post("/tickers" , status_code=status.HTTP_200_OK)
-async def update_user_tickers(
-    data: TickersUpdate, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user)
+@router.get("/info/{ticker}", response_model=Dict[str, Any])
+async def get_ticker_info(
+    ticker: str,
+    current_user = Depends(auth.get_current_user)
 ):
-    clean_tickers = [ticker.strip().upper() for ticker in data.tickers if ticker.strip()]
+        if not ticker:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="يرجى ادخال كلمة سهم صحيحة"
+            )
+        
+        result = StockService.get_single_stock_data(ticker)
 
-    current_user.tickers = clean_tickers # type: ignore
-    db.commit()
-    db.refresh(current_user)
+        if "error" in result:
+            if "غير موجود" in result["error"] or "غير صالح" in result["error"]:
+                raise HTTPException(
+                     status_code=status.HTTP_404_NOT_FOUND,
+                     detail=result["error"]
+                )
+            
+            raise HTTPException(
+                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                 detail="حدثت مشكلة ما , يرجى اعادة المحاولة"
+            )
+        
+        return result
 
-    return {
-        "status": "success",
-        "details": "تم تحديث قائمة الأسهم بنجاح",
-    }
 
 
-@router.get("/tickers", status_code=status.HTTP_200_OK)
-async def get_user_tickers(
-    current_user: User = Depends(auth.get_current_user)
-):
-    user_tickers = current_user.tickers if current_user.tickers else ["AAPL", "MSFT", "KO"] # type: ignore
-    
-    return {
-        "status": "success",
-        "tickers": user_tickers
-    }
+###
+        
+        
+
     
