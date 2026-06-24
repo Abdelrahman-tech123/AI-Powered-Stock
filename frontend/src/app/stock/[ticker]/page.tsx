@@ -99,6 +99,9 @@ export default function StockDetailPage({ params }: PageProps) {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    const [aiReport, setAiReport] = useState<{ report: string[]; buy_score: number | null } | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+
     const fetchStockData = async () => {
         if (!session) return;
 
@@ -121,6 +124,34 @@ export default function StockDetailPage({ params }: PageProps) {
         }
     };
 
+    const fetchAiAnalysis = async () => {
+        if (!stock) return;
+        setAiLoading(true);
+        try {
+            const payload = {
+                ticker: stock.ticker,
+                company_name: stock.company_name,
+                currency: stock.currency,
+                current_price: stock.current_price,
+                price_change_percent: stock.price_change_percent,
+                trailing_pe: stock.trailing_pe,
+                fifty_two_week_high: stock.fifty_two_week_high,
+                fifty_two_week_low: stock.fifty_two_week_low,
+                news: stock.news.map(n => ({ title: n.title, publisher: n.publisher })),
+            };
+            const response = await api.post(`${process.env.NEXT_PUBLIC_API_URL}/api/services/ai/info/analyze`, payload);
+            setAiReport(response.data);
+        } catch {
+            setAiReport(null);
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (stock) fetchAiAnalysis();
+    }, [stock?.ticker]);
+
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
@@ -128,6 +159,13 @@ export default function StockDetailPage({ params }: PageProps) {
             fetchStockData();
         }
     }, [status, ticker]);
+
+    const getScoreColor = (score: number | null) => {
+        if (score === null) return { stroke: "#94a3b8", label: "غير متاح", text: "text-slate-400" };
+        if (score >= 70) return { stroke: "#10b981", label: "مرتفع", text: "text-emerald-600" };
+        if (score >= 40) return { stroke: "#f59e0b", label: "متوسط", text: "text-amber-500" };
+        return { stroke: "#f43f5e", label: "منخفض", text: "text-rose-500" };
+    };
 
     if (status === "loading" || loading) {
         return (
@@ -250,15 +288,76 @@ export default function StockDetailPage({ params }: PageProps) {
                             )}
                         </div>
                     </div>
-                    <div className="bg-gradient-to-r from-white-900/20 to-indigo-900/20 border border-black-500/30 rounded-xl p-5 my-6">
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xl">✨</span>
-                            <h3 className="text-lg font-bold">صندوق التقرير الذكي (AI Summary)</h3>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" dir="rtl">
+                        <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
+                            <div className="h-7 w-7 rounded-lg bg-slate-900 flex items-center justify-center">
+                                <Activity size={14} className="text-white" />
+                            </div>
+                            <h3 className="text-sm font-black text-slate-900"> التقرير الذكي</h3>
+                            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md mr-auto">
+                                AI · Groq
+                            </span>
                         </div>
-                        {/* استخدام style الـ white-space: pre-line ليحافظ على تقسيم الأسطر الثلاثة كما جاءت من الباكيند */}
-                        <p className=" text-sm leading-relaxed whitespace-pre-line">
-                            {"لا يتوفر تحليل بالذكاء الاصطناعي الآن"}
-                        </p>
+
+                        {aiLoading ? (
+                            <div className="flex flex-col gap-3">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+                                ))}
+                            </div>
+                        ) : aiReport ? (
+                            <div className="flex gap-4 items-start">
+                                {/* Report lines */}
+                                <div className="flex flex-col gap-2.5 flex-1">
+                                    {aiReport.report.map((line, i) => (
+                                        <div
+                                            key={i}
+                                            className={`text-xs leading-relaxed px-3 py-2.5 rounded-xl border-r-[3px] bg-slate-50 ${i === 0 ? "border-r-slate-400 text-slate-600" :
+                                                i === 1 ? "border-r-emerald-500 text-slate-800 font-medium" :
+                                                    "border-r-blue-400 text-slate-600"
+                                                }`}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Score ring */}
+                                {(() => {
+                                    const score = aiReport.buy_score;
+                                    const { stroke, label, text } = getScoreColor(score);
+                                    const pct = score ?? 0;
+                                    const circumference = 2 * Math.PI * 32;
+                                    const offset = circumference - (pct / 100) * circumference;
+                                    return (
+                                        <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
+                                            <svg width="80" height="80" viewBox="0 0 80 80">
+                                                <circle cx="40" cy="40" r="32" fill="none" stroke="#e2e8f0" strokeWidth="6" />
+                                                <circle
+                                                    cx="40" cy="40" r="32" fill="none"
+                                                    stroke={stroke} strokeWidth="6"
+                                                    strokeDasharray={circumference}
+                                                    strokeDashoffset={offset}
+                                                    strokeLinecap="round"
+                                                    transform="rotate(-90 40 40)"
+                                                    style={{ transition: "stroke-dashoffset 0.8s ease" }}
+                                                />
+                                                <text x="40" y="38" textAnchor="middle" fontSize="15" fontWeight="600" fill="#0f172a">
+                                                    {score !== null ? `${score}%` : "N/A"}
+                                                </text>
+                                                <text x="40" y="52" textAnchor="middle" fontSize="9" fill="#94a3b8">
+                                                    أمان الشراء
+                                                </text>
+                                            </svg>
+                                            <span className={`text-[11px] font-bold ${text}`}>{label}</span>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-400 text-center py-4">لا يتوفر تحليل بالذكاء الاصطناعي الآن.</p>
+                        )}
                     </div>
                 </div>
 
