@@ -1,11 +1,30 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useSession, signOut } from "next-auth/react";
-import Link from "next/link"
-import { TrendingUp, LogOut, Plus, X, DollarSign, BarChart3, PieChart, Activity, ArrowUpRight, ArrowDownRight, Search, ChevronLeft, RefreshCw } from "lucide-react";
+import api from "@/lib/api";
+import Link from "next/link";
+import {
+    TrendingUp,
+    LogOut,
+    Plus,
+    X,
+    DollarSign,
+    BarChart3,
+    PieChart,
+    Activity,
+    ArrowUpRight,
+    ArrowDownRight,
+    Search,
+    RefreshCw,
+    ChevronLeft
+} from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, YAxis, XAxis } from "recharts";
+
+interface ChartPoint {
+    day: string;
+    price: number;
+}
 
 interface StockData {
     company_name?: string;
@@ -17,16 +36,12 @@ interface StockData {
     fifty_two_week_low?: number;
     industry?: string;
     summary?: string;
+    historical_chart?: ChartPoint[];
     error?: string;
 }
 
 interface DashboardStocks {
     [ticker: string]: StockData;
-}
-
-interface ChartPoint {
-    day: string;
-    price: number;
 }
 
 export default function DashboardPage() {
@@ -36,23 +51,15 @@ export default function DashboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>("");
 
-    // دالة جلب البيانات الحية من yfinance بناءً على مصفوفة الأكواد
     const fetchStockDetailsFromYFinance = async (tickersList: string[]) => {
         if (tickersList.length === 0) {
             setStocks({});
             return;
         }
-        const token = (session as any)?.accessToken;
         try {
-            const response = await axios.post<DashboardStocks>(
+            const response = await api.post<DashboardStocks>(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/search`,
-                { tickers: tickersList },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
-                }
+                { tickers: tickersList }
             );
             setStocks(response.data);
         } catch (err: any) {
@@ -61,44 +68,35 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        if (status === "authenticated") {
-            const loadDashboard = async () => {
-                const token = (session as any)?.accessToken;
-                try {
-                    setLoading(true);
-                    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+        const loadDashboard = async () => {
+            if (status === "loading") return;
+            try {
+                setLoading(true);
+                const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`);
 
-                    if (res.data?.tickers) {
-                        await fetchStockDetailsFromYFinance(res.data.tickers);
-                    }
-                } catch (err) {
+                if (res.data?.tickers && res.data.tickers.length > 0) {
+                    await fetchStockDetailsFromYFinance(res.data.tickers);
+                } else {
                     await fetchStockDetailsFromYFinance(["AAPL", "MSFT", "KO"]);
-                } finally {
-                    setLoading(false);
                 }
-            };
+            } catch (err) {
+                await fetchStockDetailsFromYFinance(["AAPL", "MSFT", "KO"]);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            loadDashboard();
-        }
+        loadDashboard();
     }, [status]);
 
-    // دالة مزامنة وحفظ مصفوفة الأكواد سحابياً
     const syncTickersWithBackend = async (updatedTickers: string[]) => {
         const token = (session as any)?.accessToken;
         if (!token) return;
 
         try {
-            await axios.post(
+            await api.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`,
-                { tickers: updatedTickers },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
+                { tickers: updatedTickers }
             );
             console.log("تم تحديث المحفظة سحابياً بنجاح");
         } catch (err: any) {
@@ -107,11 +105,9 @@ export default function DashboardPage() {
         }
     };
 
-    // معالجة إضافة سهم جديد عبر البحث
     const handleSearchSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const cleanTicker = searchQuery.trim().toUpperCase();
-        const token = (session as any)?.accessToken;
 
         if (!cleanTicker) return;
 
@@ -124,26 +120,19 @@ export default function DashboardPage() {
             setLoading(true);
             setError(null);
 
-            const response = await axios.post<DashboardStocks>(
+            const response = await api.post<DashboardStocks>(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/search`,
-                { tickers: [cleanTicker] },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
-                }
+                { tickers: [cleanTicker] }
             );
 
             if (response.data && response.data[cleanTicker] && !response.data[cleanTicker].error) {
-                setStocks((prev) => ({
-                    ...prev,
-                    [cleanTicker]: response.data[cleanTicker],
-                }));
+                setStocks((prev) => {
+                    const updated = { ...prev, [cleanTicker]: response.data[cleanTicker] };
+                    // المزامنة باستخدام القائمة الجديدة والمحدثة فوراً
+                    syncTickersWithBackend(Object.keys(updated));
+                    return updated;
+                });
                 setSearchQuery("");
-
-                const updatedTickers = [...Object.keys(stocks), cleanTicker];
-                await syncTickersWithBackend(updatedTickers);
             } else {
                 setError("لم يتم العثور على سهم بهذا الرمز أو الرمز غير صحيح");
             }
@@ -154,35 +143,14 @@ export default function DashboardPage() {
         }
     };
 
-    // معالجة حذف سهم ومزامنته فوراً
     const handleRemoveTicker = async (tickerToRemove: string) => {
         setStocks((prev) => {
             const updated = { ...prev };
             delete updated[tickerToRemove];
+            // المزامنة باستخدام المتبقي من الأسهم المحذوف منها التيكر
+            syncTickersWithBackend(Object.keys(updated));
             return updated;
         });
-
-        const remainingTickers = Object.keys(stocks).filter(t => t !== tickerToRemove);
-        await syncTickersWithBackend(remainingTickers);
-    };
-
-    const DAYS_OF_WEEK = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-    const generateHistoricalData = (current: number, low: number, high: number): ChartPoint[] => {
-        const points = 7;
-        const data: ChartPoint[] = [];
-        let basePrice = low + (high - low) * 0.4;
-        const todayIndex = new Date().getDay();
-
-        for (let i = 0; i < points - 1; i++) {
-            const randomVolatility = (Math.random() - 0.48) * (current * 0.03);
-            basePrice = Math.min(Math.max(basePrice + randomVolatility, low), high);
-            const dayName = DAYS_OF_WEEK[(todayIndex - (points - 1 - i) + 7 * 2) % 7];
-            data.push({ day: dayName, price: parseFloat(basePrice.toFixed(2)) });
-        }
-
-        data.push({ day: "اليوم", price: current });
-        return data;
     };
 
     const validStocksArray = Object.values(stocks).filter(s => s && !s.error && s.current_price);
@@ -299,7 +267,7 @@ export default function DashboardPage() {
                     </form>
                 </div>
 
-                {/* --- التعديل الجديد: العنوان الديناميكي القوي والملهم --- */}
+                {/* Title */}
                 <div className="border-b border-slate-200/60 pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-black text-slate-950 tracking-tight sm:text-2xl">
@@ -344,10 +312,16 @@ export default function DashboardPage() {
                         const low = data.fifty_two_week_low || 0;
                         const high = data.fifty_two_week_high || 1;
                         const current = data.current_price || 0;
-                        const percentage = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
 
-                        const chartData = generateHistoricalData(current, low, high);
-                        const isUp = current >= low + (high - low) / 2;
+                        // حساب النسبة المئوية لموقع السعر من النطاق السنوي
+                        const range = high - low;
+                        const percentage = range > 0 ? ((current - low) / range) * 100 : 0;
+
+                        const chartData = data.historical_chart || [];
+
+                        const isUp = chartData.length >= 2
+                            ? chartData[chartData.length - 1].price >= chartData[chartData.length - 2].price
+                            : current >= (low + (high - low) / 2);
 
                         return (
                             <div key={ticker} className="bg-white border border-slate-200/80 rounded-2xl p-5 relative shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group min-h-[520px]">
@@ -368,9 +342,9 @@ export default function DashboardPage() {
                                                 {data.industry || "General"}
                                             </span>
                                         </div>
-                                        <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full ${isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-600'}`}>
+                                        <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full ${isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                                             {isUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                                            <span>{isUp ? "نشط صاعد" : "مستقر النطاق"}</span>
+                                            <span>{isUp ? "صاعد مؤخراً" : "هابط مؤخراً"}</span>
                                         </div>
                                     </div>
 
@@ -381,44 +355,50 @@ export default function DashboardPage() {
                                         <span className="text-[10px] text-slate-400 font-bold">USD</span>
                                     </div>
 
-                                    {/* الرسم البياني التفاعلي */}
+                                    {/* التخطيط البياني التفاعلي */}
                                     <div className="w-full h-28 my-2 opacity-95 transition-opacity pb-2">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                                                <XAxis
-                                                    dataKey="day"
-                                                    tickLine={false}
-                                                    axisLine={false}
-                                                    tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: '600' }}
-                                                    dy={8}
-                                                />
-                                                <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide={true} />
-                                                <Tooltip
-                                                    contentStyle={{ background: '#0f172a', borderRadius: '10px', border: 'none', color: '#fff', fontSize: '10px', fontFamily: 'sans-serif' }}
-                                                    itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
-                                                    labelStyle={{ color: '#94a3b8', marginBottom: '2px', textAlign: 'right' }}
-                                                    formatter={(value: any) => [`$${value}`, "السعر"]}
-                                                />
-                                                <defs>
-                                                    <linearGradient id={`colorPrice-${ticker}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor={isUp ? "#10b981" : "#694847ff"} stopOpacity={0.2} />
-                                                        <stop offset="95%" stopColor={isUp ? "#10b981" : "#694747ff"} stopOpacity={0.0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <Area
-                                                    type="monotone"
-                                                    dataKey="price"
-                                                    stroke={isUp ? "#10b981" : "#f5412dff"}
-                                                    strokeWidth={2}
-                                                    fillOpacity={1}
-                                                    fill={`url(#colorPrice-${ticker})`}
-                                                />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
+                                        {chartData.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                                                    <XAxis
+                                                        dataKey="day"
+                                                        tickLine={false}
+                                                        axisLine={false}
+                                                        tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: '600' }}
+                                                        dy={8}
+                                                    />
+                                                    <YAxis domain={['dataMin - 2', 'dataMax + 2']} hide={true} />
+                                                    <Tooltip
+                                                        contentStyle={{ background: '#0f172a', borderRadius: '10px', border: 'none', color: '#fff', fontSize: '10px', fontFamily: 'sans-serif' }}
+                                                        itemStyle={{ color: isUp ? '#10b981' : '#f43f5e', fontWeight: 'bold' }}
+                                                        labelStyle={{ color: '#94a3b8', marginBottom: '2px', textAlign: 'right' }}
+                                                        formatter={(value: any) => [`$${value}`, "السعر"]}
+                                                    />
+                                                    <defs>
+                                                        <linearGradient id={`colorPrice-${ticker}`} x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor={isUp ? "#10b981" : "#f43f5e"} stopOpacity={0.2} />
+                                                            <stop offset="95%" stopColor={isUp ? "#10b981" : "#f43f5e"} stopOpacity={0.0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="price"
+                                                        stroke={isUp ? "#10b981" : "#f43f5e"}
+                                                        strokeWidth={2}
+                                                        fillOpacity={1}
+                                                        fill={`url(#colorPrice-${ticker})`}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-50 border border-dashed border-slate-200 rounded-xl text-[10px] text-slate-400">
+                                                لا توجد بيانات مخطط متوفرة
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* المؤشرات والبيانات */}
+                                {/* المؤشرات والبيانات الاقتصاية */}
                                 <div className="border-t border-slate-100 pt-3.5 space-y-2.5 text-xs text-slate-600 font-medium">
                                     <div className="flex justify-between items-center">
                                         <span>القيمة الرأسمالية:</span>
@@ -457,10 +437,10 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* --- التعديل الجديد: رابط تفاصيل السهم الاحترافي التفاعلي --- */}
+                                {/* رابط تفاصيل السهم */}
                                 <div className="mt-4 pt-2.5 border-t border-slate-100/60">
                                     <Link
-                                        href={`/${ticker.toLowerCase()}/info`}
+                                        href={`/stock/${ticker.toLowerCase()}`}
                                         className="w-full bg-slate-50 hover:bg-slate-950 text-slate-700 hover:text-white border border-slate-200/70 rounded-xl py-2 px-3 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all group/btn"
                                     >
                                         <span>تحليل المؤشرات والبيانات التفصيلية لـ {ticker}</span>

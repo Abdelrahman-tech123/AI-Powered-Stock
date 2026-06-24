@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
                     };
                 } catch (error: any) {
                     // السطر ده هيطبعلك في ترمنال الـ Next.js الـ 422 دي سببها إيه بالظبط من الـ FastAPI
-                    console.error("FastAPI Validation Error Details:", error.response?.data?.detail);
+                    console.error("Validation Error Details:");
                     return null;
                 }
             }

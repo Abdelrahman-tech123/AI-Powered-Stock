@@ -14,6 +14,7 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+from watchfiles import run_process, DefaultFilter
 
 import uvicorn
 
@@ -78,15 +79,23 @@ def main() -> None:
         serve()
         return
 
-    print(f"Watching {BASE_DIR} for changes...")
+    class CustomFilter(DefaultFilter):
+        def __call__(self, change_type, path: str) -> bool:
+            normalized_path = path.replace("\\", "/").lower()
+            if "cache_files" in normalized_path:
+                return False
+            return super().__call__(change_type, path)
+
+    print(f"Watching {BASE_DIR} for changes (ignoring cache_files)...")
+    
     run_process(
         str(BASE_DIR),
         target=serve,
         callback=on_reload,
+        watch_filter=CustomFilter(),
         debounce=1200,
         step=100,
     )
-
 
 if __name__ == "__main__":
     main()

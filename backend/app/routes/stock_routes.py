@@ -1,14 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.services.stock_service import StockService
+from app.services.stock_service import StockService , AddonServices
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from app.database import get_db
-from app import auth
+from app.auth import get_current_user
 from app.config import debug_print
-from app.schemas import TickersUpdate
-from app.models import User
 
 router = APIRouter()
 
@@ -18,7 +13,7 @@ class StockSearchRequest(BaseModel):
 @router.post("/search", response_model=Dict[str,Any])
 async def get_dashboard_stocks(
     request_data : StockSearchRequest,
-    current_user = Depends(auth.get_current_user)
+    current_user = Depends(get_current_user)
 ):
     if not request_data.tickers:
         raise HTTPException(
@@ -37,7 +32,7 @@ async def get_dashboard_stocks(
 @router.get("/info/{ticker}", response_model=Dict[str, Any])
 async def get_ticker_info(
     ticker: str,
-    current_user = Depends(auth.get_current_user)
+    current_user = Depends(get_current_user)
 ):
         if not ticker:
             raise HTTPException(
@@ -58,6 +53,16 @@ async def get_ticker_info(
                  status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                  detail="حدثت مشكلة ما , يرجى اعادة المحاولة"
             )
+        
+        cached_arabic_news = AddonServices.get_cached_news_from_json(ticker)
+
+        if cached_arabic_news:
+            result["news"] = cached_arabic_news
+        else:
+            raw_news = result.get("news", [])
+            if raw_news:
+                AddonServices.translate_news_in_background(ticker, raw_news)
+                result["news"] = raw_news
         
         return result
 
