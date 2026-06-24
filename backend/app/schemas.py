@@ -47,3 +47,31 @@ class TokenData(BaseModel):
 
 class TickersUpdate(BaseModel):
     tickers: List[str] = Field(..., description="قائمة برموز الأسهم الجديدة بالكامل")
+
+
+# ============================
+# 🪙 AI CHATBOT & REQUETS
+# ============================
+
+class ChatMessageResponse(BaseModel):
+    role: str
+    content: str
+    ticker: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ChatInitResponse(BaseModel):
+    requests_left: int
+    history: List[ChatMessageResponse]
+
+class ChatRequest(BaseModel):
+    message: str
+    ticker: Optional[str] = None
+    history: List[dict] = []
+    stock_data: Optional[dict] = None
+
+class ChatResponse(BaseModel):
+    reply: str
+    requests_left: int

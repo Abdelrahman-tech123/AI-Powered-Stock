@@ -1,14 +1,21 @@
 from app.ai_client import ai_manager
 from app.config import debug_print
 import re
+from typing import Optional , List
 
-class AI_services :
+from groq.types.chat import ChatCompletionMessageParam
+from datetime import date
+from sqlalchemy.orm import Session
+
+class AI_analyze :
 
     @staticmethod
     def _extract_buy_score(text: str) -> int | None:
         normalized = text.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789'))
         match = re.search(r'نسبة أمان الشراء[^%٪]*?(\d+)[%٪]', normalized)
         return int(match.group(1)) if match else None
+
+    ###
 
     @staticmethod
     def generate_stock_ai_report(stock_data: dict) -> dict:
@@ -89,7 +96,7 @@ class AI_services :
 
             return {
                 "report": report.split("\n"),
-                "buy_score": AI_services._extract_buy_score(report)
+                "buy_score": AI_analyze._extract_buy_score(report)
             }
 
         except Exception as e:
@@ -97,5 +104,78 @@ class AI_services :
             import traceback
             debug_print(traceback.format_exc())
             return placeholder_res
-                
+        
 
+
+class AI_chatBot :
+
+    @staticmethod
+    def generate_chat_reply(
+        user_message: str,
+        ticker: Optional[str] = None,
+        history_messages: list = [],
+        stock_data: Optional[dict] = None
+    ) -> str:
+
+        assert ai_manager.client is not None, "AI Client has not been initialized via lifespan!"
+
+        if ticker and ticker.strip():
+            data_summary = ""
+            if stock_data:
+                data_summary = "\n".join([f"- {key}: {value}" for key, value in stock_data.items()])
+
+            system_prompt = (
+                f"أنت مستشار مالي ذكي وخبير ومخصص لتحليل سهم ({ticker.upper()}).\n"
+                f"بيانات السهم الحالية في لوحة التحكم هي:\n{data_summary}\n"
+                f"أجب على استفسارات المستخدم باختصار واحترافية باللغة العربية مستعيناً بهذه الأرقام."
+            )
+        else:
+            system_prompt = (
+                "أنت مساعد مالي ذكي وخبير في أسواق الأسهم والبورصة في لوحة التحكم الرئيسية. "
+                "أجب على أسئلة المستخدم باللغة العربية باختصار واحترافية."
+            )
+
+        formatted_messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt}
+        ]
+
+        for msg in history_messages:
+            if hasattr(msg, "model_dump"):
+                msg_dict = msg.model_dump()
+            elif hasattr(msg, "dict"):
+                msg_dict = msg.dict()
+            else:
+                msg_dict = msg
+
+            formatted_messages.append({
+                "role": msg_dict.get("role", "user"),
+                "content": msg_dict.get("content", "")
+            })
+
+        formatted_messages.append({"role": "user", "content": user_message})
+
+        try:
+            chat_completion = ai_manager.client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=formatted_messages,
+                temperature=0.4,
+                max_tokens=500
+            )
+
+            reply = chat_completion.choices[0].message.content
+            return reply if reply is not None else ""
+
+        except Exception as e:
+            debug_print(f"Groq API Error: {str(e)}")    
+            raise Exception("Groq API Error")
+
+    @staticmethod
+    def verify_and_lazy_reset_limit(user, db: Session):
+        today = date.today()
+        if user.last_chat_date != today:
+            user.ai_requests_left = 10
+            user.last_chat_date = today
+            db.commit()
+            db.refresh(user)
+
+###

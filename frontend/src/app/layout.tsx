@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthProvider from "./components/AuthProvider";
-// import { AppProvider } from "./context/AppContext";
+// استيراد الشات بوت العائم
+import AiChatBot from "./components/AiChatBot";
 import { Cairo, Plus_Jakarta_Sans } from "next/font/google";
 
 const cairo = Cairo({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans font-medium antialiased text-slate-900 dark:text-slate-100">
         <AuthProvider>
           {children}
+          <AiChatBot />
         </AuthProvider>
       </body>
     </html>
