@@ -250,6 +250,16 @@ export default function StockDetailPage({ params }: PageProps) {
                             )}
                         </div>
                     </div>
+                    <div className="bg-gradient-to-r from-white-900/20 to-indigo-900/20 border border-black-500/30 rounded-xl p-5 my-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xl">✨</span>
+                            <h3 className="text-lg font-bold">صندوق التقرير الذكي (AI Summary)</h3>
+                        </div>
+                        {/* استخدام style الـ white-space: pre-line ليحافظ على تقسيم الأسطر الثلاثة كما جاءت من الباكيند */}
+                        <p className=" text-sm leading-relaxed whitespace-pre-line">
+                            {"لا يتوفر تحليل بالذكاء الاصطناعي الآن"}
+                        </p>
+                    </div>
                 </div>
 
                 {/* الجزء الأيسر (70%) - لوحة تحكم السهم والتحليلات المعمقة المحترفة */}
