@@ -20,9 +20,10 @@ import {
     ChevronLeft
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, YAxis, XAxis } from "recharts";
+import AiChatBot from "@/app/components/AiChatBot"; // ← adjust path to match your project structure
 
 // ─── Cache Utility ────────────────────────────────────────────────────────────
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry<T> {
     data: T;
@@ -48,9 +49,7 @@ function setCached<T>(key: string, data: T): void {
     try {
         const entry: CacheEntry<T> = { data, timestamp: Date.now() };
         localStorage.setItem(key, JSON.stringify(entry));
-    } catch {
-        // localStorage full or unavailable
-    }
+    } catch { }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -148,7 +147,7 @@ export default function DashboardPage() {
     const syncTickersWithBackend = async (updatedTickers: string[]) => {
         try {
             await api.post(`${process.env.NEXT_PUBLIC_API_URL}/api/services/tickers`, { tickers: updatedTickers });
-        } catch (err: any) {
+        } catch {
             setError("تم التعديل على الشاشة ولكن فشل الحفظ في السيرفر");
         }
     };
@@ -213,7 +212,6 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-[#fafafa] text-slate-900 flex flex-col font-sans relative overflow-hidden" dir="rtl">
-            {/* Background glow */}
             <div className="absolute top-[-30%] left-[-10%] w-[1200px] h-[900px] rounded-full bg-gradient-to-br from-slate-100 via-neutral-50/20 to-transparent blur-[130px] pointer-events-none z-0" />
 
             {/* ── Navbar ── */}
@@ -229,13 +227,6 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Cache status badge */}
-                    {/* {isFromCache && (
-                        <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg font-bold">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />
-                            بيانات مؤقتة · اضغط تحديث
-                        </div>
-                    )} */}
                     <span className="text-xs text-slate-500 hidden sm:inline">
                         مرحباً، <strong className="text-slate-900 font-semibold">{session?.user?.name || "المستخدم"}</strong>
                     </span>
@@ -334,19 +325,6 @@ export default function DashboardPage() {
                             شاشة مراقبة تفاعلية لتحليل مؤشرات السوق، الأسعار الحالية ونطاقات الحركة السنوية.
                         </p>
                     </div>
-                    {/* <div className="flex items-center gap-2 text-[10px] font-bold self-start md:self-auto">
-                        {isFromCache ? (
-                            <span className="flex items-center gap-1.5 text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />
-                                بيانات مخزنة مؤقتاً · أقل من 5 دقائق
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5">
-                                <RefreshCw size={11} className="animate-spin text-emerald-500" />
-                                بيانات حية محدثة الآن
-                            </span>
-                        )}
-                    </div> */}
                 </div>
 
                 {/* Feedback */}
@@ -400,7 +378,6 @@ export default function DashboardPage() {
                                 key={ticker}
                                 className="bg-white border border-slate-200/80 rounded-2xl p-5 relative shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group min-h-[520px]"
                             >
-                                {/* Remove button */}
                                 <button
                                     onClick={() => handleRemoveTicker(ticker)}
                                     className="absolute top-4 left-4 h-6 w-6 rounded-full bg-slate-50 border border-slate-100 sm:opacity-0 group-hover:opacity-100 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all z-20 shadow-sm"
@@ -409,7 +386,6 @@ export default function DashboardPage() {
                                 </button>
 
                                 <div>
-                                    {/* Header row */}
                                     <div className="flex justify-between items-center mb-2.5">
                                         <div className="flex items-center gap-2">
                                             <div className="bg-slate-950 text-white font-black text-xs px-3 py-1 rounded-lg tracking-wide shadow-sm">
@@ -427,13 +403,11 @@ export default function DashboardPage() {
 
                                     <h4 className="text-xs font-bold text-slate-400 truncate max-w-[210px] mb-4">{data.company_name}</h4>
 
-                                    {/* Price */}
                                     <div className="flex items-baseline gap-1.5 mb-2">
                                         <strong className="text-3xl font-black text-slate-950 tracking-tight">${current.toFixed(2)}</strong>
                                         <span className="text-[10px] text-slate-400 font-bold">USD</span>
                                     </div>
 
-                                    {/* Chart */}
                                     <div className="w-full h-28 my-2 pb-2">
                                         {chartData.length > 0 ? (
                                             <ResponsiveContainer width="100%" height="100%">
@@ -463,7 +437,6 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* Metrics */}
                                 <div className="border-t border-slate-100 pt-3.5 space-y-2.5 text-xs text-slate-600 font-medium">
                                     <div className="flex justify-between items-center">
                                         <span>القيمة الرأسمالية:</span>
@@ -481,7 +454,6 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* 52-week range */}
                                 <div className="mt-4 pt-3.5 border-t border-slate-100 space-y-2">
                                     <div className="flex justify-between text-[10px] font-semibold text-slate-400">
                                         <span>نطاق الحركة السنوي</span>
@@ -496,7 +468,6 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* Detail link */}
                                 <div className="mt-4 pt-2.5 border-t border-slate-100/60">
                                     <Link
                                         href={`/stock/${ticker.toLowerCase()}`}
@@ -522,6 +493,9 @@ export default function DashboardPage() {
                     </div>
                 )}
             </main>
+
+            {/* AI Chatbot — no ticker or stock data on the dashboard, shown only after initial load */}
+            {!loading && <AiChatBot />}
         </div>
     );
 }

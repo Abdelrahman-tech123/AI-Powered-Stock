@@ -74,3 +74,6 @@ def handle_ai_chat(
         db.rollback()
         debug_print(f"Chat Route Error: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="حدث خطأ أثناء معالجة رد الذكاء الاصطناعي.")
+    
+
+###

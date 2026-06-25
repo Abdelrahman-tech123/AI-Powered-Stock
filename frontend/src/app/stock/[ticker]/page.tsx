@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, use } from "react";
-import api from "@/lib/api"
+import api from "@/lib/api";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -23,6 +23,7 @@ import {
     Gauge
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, YAxis, XAxis } from "recharts";
+import AiChatBot from "@/app/components/AiChatBot";
 
 interface ChartHistoryPoint {
     date: string;
@@ -110,7 +111,8 @@ export default function StockDetailPage({ params }: PageProps) {
             setError(null);
 
             const response = await api.get<SingleStockData>(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/info/${ticker}`);
+                `${process.env.NEXT_PUBLIC_API_URL}/api/services/stock/info/${ticker}`
+            );
 
             if (response.data) {
                 setStock(response.data);
@@ -159,6 +161,48 @@ export default function StockDetailPage({ params }: PageProps) {
             fetchStockData();
         }
     }, [status, ticker]);
+
+    // Build a clean flat object for the chatbot — excludes chart_history to keep payload lean
+    const chatbotStockData = stock
+        ? {
+            ticker: stock.ticker,
+            company_name: stock.company_name,
+            sector: stock.sector,
+            industry: stock.industry,
+            country: stock.country,
+            currency: stock.currency,
+            exchange: stock.exchange,
+            current_price: stock.current_price,
+            previous_close: stock.previous_close,
+            price_change: stock.price_change,
+            price_change_percent: stock.price_change_percent,
+            open: stock.open,
+            day_low: stock.day_low,
+            day_high: stock.day_high,
+            volume: stock.volume,
+            average_volume: stock.average_volume,
+            market_cap: stock.market_cap,
+            trailing_pe: stock.trailing_pe,
+            forward_pe: stock.forward_pe,
+            price_to_book: stock.price_to_book,
+            beta: stock.beta,
+            dividend_yield: stock.dividend_yield,
+            dividend_rate: stock.dividend_rate,
+            fifty_two_week_high: stock.fifty_two_week_high,
+            fifty_two_week_low: stock.fifty_two_week_low,
+            year_range_position_percent: stock.year_range_position_percent,
+            profit_margins: stock.profit_margins,
+            revenue_growth: stock.revenue_growth,
+            earnings_growth: stock.earnings_growth,
+            return_on_equity: stock.return_on_equity,
+            debt_to_equity: stock.debt_to_equity,
+            total_cash: stock.total_cash,
+            free_cashflow: stock.free_cashflow,
+            target_mean_price: stock.target_mean_price,
+            upside_potential_percent: stock.upside_potential_percent,
+            recommendation_key: stock.recommendation_key,
+        }
+        : undefined;
 
     const getScoreColor = (score: number | null) => {
         if (score === null) return { stroke: "#94a3b8", label: "غير متاح", text: "text-slate-400" };
@@ -244,10 +288,10 @@ export default function StockDetailPage({ params }: PageProps) {
                 </div>
             </nav>
 
-            {/* Layout (30% News Right / 70% Analytics Left) */}
+            {/* Layout */}
             <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-10 gap-6 z-10">
 
-                {/* الجزء الأيمن (30%) - الأخبار والتغطية الفورية في اليمين دائماً */}
+                {/* الجزء الأيمن (30%) - الأخبار والتغطية الفورية */}
                 <div className="lg:col-span-3 flex flex-col gap-4">
                     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm h-fit">
                         <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
@@ -289,12 +333,12 @@ export default function StockDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" dir="rtl">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
                             <div className="h-7 w-7 rounded-lg bg-slate-900 flex items-center justify-center">
                                 <Activity size={14} className="text-white" />
                             </div>
-                            <h3 className="text-sm font-black text-slate-900"> التقرير الذكي</h3>
+                            <h3 className="text-sm font-black text-slate-900">التقرير الذكي</h3>
                             <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md mr-auto">
                                 AI · Groq
                             </span>
@@ -308,7 +352,6 @@ export default function StockDetailPage({ params }: PageProps) {
                             </div>
                         ) : aiReport ? (
                             <div className="flex gap-4 items-start">
-                                {/* Report lines */}
                                 <div className="flex flex-col gap-2.5 flex-1">
                                     {aiReport.report.map((line, i) => (
                                         <div
@@ -323,7 +366,6 @@ export default function StockDetailPage({ params }: PageProps) {
                                     ))}
                                 </div>
 
-                                {/* Score ring */}
                                 {(() => {
                                     const score = aiReport.buy_score;
                                     const { stroke, label, text } = getScoreColor(score);
@@ -361,10 +403,10 @@ export default function StockDetailPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* الجزء الأيسر (70%) - لوحة تحكم السهم والتحليلات المعمقة المحترفة */}
+                {/* الجزء الأيسر (70%) - لوحة تحكم السهم والتحليلات */}
                 <div className="lg:col-span-7 flex flex-col gap-6">
 
-                    {/* بطاقة السعر والبيانات الفورية الحالية */}
+                    {/* بطاقة السعر الحالية */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
@@ -393,7 +435,7 @@ export default function StockDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* الرسم البياني والتاريخ السعري */}
+                    {/* الرسم البياني */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -422,9 +464,8 @@ export default function StockDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* بار تقدم النطاق السنوي وقيمة المحللين المستهدفة */}
+                    {/* النطاق السنوي وقيمة المحللين المستهدفة */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* النطاق السنوي 52 أسبوع بصرياً */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-xs font-bold text-slate-500">موقع السعر الحالي من نطاق 52 أسبوعاً</span>
@@ -442,7 +483,6 @@ export default function StockDetailPage({ params }: PageProps) {
                             </div>
                         </div>
 
-                        {/* قيمة المحللين المستهدفة وفرص الصعود والنمو */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                             <div className="flex flex-col gap-1">
                                 <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
@@ -462,7 +502,7 @@ export default function StockDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* الصحة المالية وعوائد التشغيل والنمو (Financial Health) */}
+                    {/* الصحة المالية */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <PieChart size={16} className="text-slate-500" />
@@ -533,7 +573,7 @@ export default function StockDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* حول الشركة والملخص المترجم للعربية */}
+                    {/* حول الشركة والملخص */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                             <FileText size={16} className="text-slate-500" />
@@ -552,18 +592,23 @@ export default function StockDetailPage({ params }: PageProps) {
                                 <span>المنطقة والبلد الأساسي: {stock.country || "N/A"}</span>
                             </div>
                             {stock.website && (
-                                <div className="flex items-center gap-1.5">
-                                    <Globe size={14} />
-                                    <a href={stock.website} target="_blank" rel="noreferrer" className="hover:underline text-slate-900 flex items-center gap-0.5">
-                                        الموقع الرسمي للشركة <ExternalLink size={10} />
-                                    </a>
-                                </div>
+                                <a
+                                    href={stock.website}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-1.5 text-blue-600 hover:underline"
+                                >
+                                    <ExternalLink size={14} />
+                                    <span>الموقع الإلكتروني للشركة</span>
+                                </a>
                             )}
                         </div>
                     </div>
-                </div>
 
+                </div>
             </main>
+
+            {!loading && (<AiChatBot currentStockData={chatbotStockData} />)}
         </div>
     );
 }

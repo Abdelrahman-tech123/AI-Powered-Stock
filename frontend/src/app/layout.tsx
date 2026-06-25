@@ -30,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans font-medium antialiased text-slate-900 dark:text-slate-100">
         <AuthProvider>
           {children}
-          <AiChatBot />
         </AuthProvider>
       </body>
     </html>
