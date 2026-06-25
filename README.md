@@ -1,9 +1,9 @@
 # Real-Time Financial Analytics Dashboard & Autonomous AI Agent
 
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-App%20Router-black?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-Async-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014--App%20Router-black?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI--Async-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![TailwindCSS](https://img.shields.io/badge/UI_Framework-Tailwind%20CSS%20v3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![TypeScript](https://img.shields.io/badge/Language-TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript--Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 This is a high-performance financial intelligence web platform. It combines engaging client-side dashboards with an autonomous AI Financial Agent. The architecture connects live web application memory directly with Large Language Models (LLMs). This change turns a static chat window into a nimble, context-aware quantitative analyst that can analyze complex market data in real time.
 
