@@ -23,7 +23,7 @@ import { ResponsiveContainer, AreaChart, Area, Tooltip, YAxis, XAxis } from "rec
 import AiChatBot from "@/app/components/AiChatBot"; // ← adjust path to match your project structure
 
 // ─── Cache Utility ────────────────────────────────────────────────────────────
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
 
 interface CacheEntry<T> {
     data: T;
